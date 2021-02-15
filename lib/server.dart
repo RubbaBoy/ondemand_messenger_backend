@@ -34,6 +34,7 @@ class Server {
       request.response.write(jsonEncode({'error': 'POST Only'}));
     } else {
       var response = request.response;
+      response.headers.set('Access-Control-Allow-Origin', '*');
       response.write(jsonEncode(await handleGet(request)));
       await response.close();
     }

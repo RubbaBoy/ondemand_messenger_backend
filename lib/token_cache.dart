@@ -8,10 +8,11 @@ class TokenCache {
   TokenCache(this.fetchToken);
 
   Future<String> getToken() async {
-    if (token == null || fetched.difference(DateTime.now()).inMinutes >= 30) {
+    var now = DateTime.now();
+    if (token == null || now.difference(fetched).inMinutes >= 30) {
       print('Fetching new token');
       token = await fetchToken();
-      fetched = DateTime.now();
+      fetched = now;
     }
 
     return token;
