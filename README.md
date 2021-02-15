@@ -31,7 +31,7 @@ dart bin/ondemand_token_grabber.dart
 }
 ```
 
-The `number` must be a `11-digit phone number. `message` may be anything your heart desires (granted your heart desires nothing more than 2^12 characters).
+The `number` must be a 11-digit phone number. `message` may be anything your heart desires (granted your heart desires nothing more than 2^12 characters).
 
 #### Responses:
 
