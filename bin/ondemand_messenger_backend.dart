@@ -11,11 +11,8 @@ Future<void> main(List<String> args) async {
 
   var result = parser.parse(args);
 
-  var tokenFetcher = TokenFetcher();
-  await tokenFetcher.init(int.parse(result['driverport']));
-
   print('Binding...');
 
-  await Server(tokenFetcher)
+  await Server(TokenFetcher())
       .start(int.parse(result['port']));
 }

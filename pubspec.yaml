@@ -7,10 +7,7 @@ environment:
   sdk: '>=2.10.0 <3.0.0'
 
 dependencies:
-  webdriver: any
-  args: ^1.5.2
-  process_run: ^0.11.2+8
-  image: ^2.1.4
+  args: ^2.0.0
   http: ^0.13.0
 
 dev_dependencies:

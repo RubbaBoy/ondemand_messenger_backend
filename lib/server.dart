@@ -6,12 +6,9 @@ import 'package:ondemand_messenger_backend/utility.dart';
 
 class Server {
 
-  final HttpClient _http;
   final TokenFetcher _tokenFetcher;
 
-  Server(this._tokenFetcher) : _http = HttpClient() {
-    _http.badCertificateCallback = ((X509Certificate cert, String host, int port) => true);
-  }
+  Server(this._tokenFetcher);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -59,12 +56,12 @@ class Server {
         return {'error': 'Required number and message parameters'};
       }
 
-      var number = json['number'];
+      var number = parsePhoneNumber(json['number']);
       var message = json['message'];
 
-      if (number.length != 11 || !isNumeric(number)) {
+      if (number == null || !isNumeric(number)) {
         response.statusCode = HttpStatus.badRequest;
-        return {'error': 'number must be a 10 digit phone number'};
+        return {'error': 'number must be a 10 digit phone number (or longer with international code)'};
       }
 
       if (message.isEmpty || message.length > 4096) {
@@ -104,7 +101,7 @@ class Server {
   }
 
   Future<HttpClientResponse> sendPost(String url, Map<String, String> headers, Map<String, dynamic> body) async {
-    var request = await _http.postUrl(Uri.parse(url));
+    var request = await httpClient.postUrl(Uri.parse(url));
     headers.forEach(request.headers.set);
     request.add(utf8.encode(jsonEncode(body)));
     return await request.close();
