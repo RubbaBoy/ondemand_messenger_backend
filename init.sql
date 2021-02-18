@@ -1,0 +1,4 @@
+CREATE DATABASE IF NOT EXISTS ondemand;
+CREATE TABLE IF NOT EXISTS temp (
+    val int
+);

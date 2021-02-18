@@ -1,14 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:mysql1/mysql1.dart';
 import 'package:ondemand_messenger_backend/fetcher.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class Server {
 
   final TokenFetcher _tokenFetcher;
+  final MySqlConnection _conn;
 
-  Server(this._tokenFetcher);
+  Server(this._tokenFetcher, this._conn);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -94,6 +96,13 @@ class Server {
       }
 
       return jsonDecode(body);
+    } else if (path[0] == 'add') {
+      await _conn.query('UPDATE temp SET val = val + 1');
+      var res = await await _conn.query('SELECT val FROM temp');
+      var first = res.first;
+      var val = first['val'];
+      print('val = $val');
+      return {'value': val};
     }
 
     response.statusCode = HttpStatus.notFound;

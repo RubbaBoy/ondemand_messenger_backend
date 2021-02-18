@@ -4,11 +4,11 @@ This program is an API to send arbitrary messages to any phone number using the 
 
 To use my self-hosted version of this, the base URL is `https://ondemand.yarr.is/`
 
-For example, sending an SMS of `Hello World!` to `+1 (123) 456-7890` would be the cURL command:
+For example, sending an SMS of `Hello World!` to `+1 (123) 456-7890` would be the cURL command (the formatting of the phone number is not necessary):
 
 ```bash
 curl --request POST \
-  --data '{"number":"11234567890","message":"Hello World!"}' \
+  --data '{"number":"(123) 456-7890","message":"Hello World!"}' \
   https://ondemand.yarr.is/sendSMS
 ```
 
@@ -26,12 +26,12 @@ dart bin/ondemand_token_grabber.dart
 
 ```json
 {
-    "number": "11234567890",
+    "number": "1234567890",
     "message": "Any text"
 }
 ```
 
-The `number` must be a 11-digit phone number. `message` may be anything your heart desires (granted your heart desires nothing more than 2^12 characters).
+The `number` must be a 10-digit phone number (or more if you include the country code). All non-numeric characters are stripped before processing. `message` may be anything your heart desires (granted your heart desires nothing more than 2^12 characters).
 
 #### Responses:
 
