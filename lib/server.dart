@@ -131,6 +131,10 @@ class Server {
   Future<Map<String, dynamic>> createBook(
       HttpRequest request, HttpResponse response, Map<String, dynamic> json, {String name, String password}) async {
 
+    if (_bookManager.containsBook(name)) {
+      return error(response, HttpStatus.badRequest, 'Book with name already exists');
+    }
+
     var book = await _bookManager.addBook(name, password);
 
     return {

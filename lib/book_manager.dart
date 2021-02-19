@@ -46,6 +46,9 @@ class BookManager {
     return book;
   }
 
+  bool containsBook(String name) =>
+      books.any((book) => book.name == name);
+
   Future<int> getLastId() async {
     var idRow = await _conn.query('SELECT LAST_INSERT_ID()');
     return idRow.first.values[0];
