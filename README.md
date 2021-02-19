@@ -62,3 +62,8 @@ When input parameters are incorrect
 ```
 
 The `token` is the authentication bearer token used by the OnDemand service.
+
+### `POST` /createBook
+### `POST` /getBook
+### `POST` /addNumber
+### `POST` /removeNumber
