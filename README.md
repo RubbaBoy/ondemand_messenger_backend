@@ -24,7 +24,7 @@ For a detailed overview of the API, please see the [API docs](/API.md).
 
 If you don't want to use my self-hosted copy, getting it running yourself is easy.
 
-First, install [docker](https://www.docker.com/) and [docker compose](https://docs.docker.com/compose/install/). Then, save [docker-compose.yml](/blob/master/docker-compose.yml) to your local machine. Lastly, run
+First, install [docker](https://www.docker.com/) and [docker compose](https://docs.docker.com/compose/install/). Then, save [docker-compose.yml](/docker-compose.yml) to your local machine. Lastly, run
 
 ```bash
 sudo docker-compose up
