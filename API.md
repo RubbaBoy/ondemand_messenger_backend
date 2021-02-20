@@ -110,10 +110,10 @@ Adds a phone number to the address book.
 ```json
 {
     "number": {
-         "numberId": "1",
-         "name": "Person name",
-		"number": "1234567890"
-	}
+        "numberId": "1",
+        "name": "Person name",
+        "number": "1234567890"
+    }
 }
 ```
 
