@@ -1,3 +1,4 @@
+# The database init script
 
 CREATE DATABASE IF NOT EXISTS ondemand;
 GRANT ALL ON `ondemand`.* TO 'user'@'%';

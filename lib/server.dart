@@ -1,17 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:mysql1/mysql1.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/fetcher.dart';
+import 'package:ondemand_messenger_backend/request_helper.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class Server {
   final TokenFetcher _tokenFetcher;
   final BookManager _bookManager;
-  final MySqlConnection _conn;
 
-  Server(this._tokenFetcher, this._bookManager, this._conn);
+  Server(this._tokenFetcher, this._bookManager);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -30,17 +29,19 @@ class Server {
   }
 
   Future<void> handle(HttpRequest request) async {
+    var response = request.response;
+    response.headers.set('Access-Control-Allow-Origin', '*');
+
     if (request.method != 'POST') {
-      request.response.write(jsonEncode({'error': 'POST Only'}));
+      response.write(jsonEncode({'error': 'POST Only'}));
     } else {
-      var response = request.response;
-      response.headers.set('Access-Control-Allow-Origin', '*');
-      response.write(jsonEncode(await handleGet(request)));
-      await response.close();
+      response.write(jsonEncode(await handlePost(request)));
     }
+
+    await response.close();
   }
 
-  Future<Map<String, dynamic>> handleGet(HttpRequest request) async {
+  Future<Map<String, dynamic>> handlePost(HttpRequest request) async {
     var path = request.uri.pathSegments;
     var response = request.response;
 
@@ -51,12 +52,16 @@ class Server {
 
     var res = ({
       'token': getToken,
-      'sendSMS': (re, rs) => ensureParameters(request, response, sendSMS, requestParams: ['number', 'message']),
-      'add': add,
-      'createBook': (re, rs) => ensureParameters(request, response, createBook, requestParams: ['name', 'password']),
-      'getBook': (re, rs) => ensureParameters(re, rs, getBook, bookRequest: true),
-      'addNumber': (re, rs) => ensureParameters(re, rs, addNumber, bookRequest: true, requestParams: ['numberName', 'number']),
-      'removeNumber': (re, rs) => ensureParameters(re, rs, removeNumber, bookRequest: true, requestParams: ['numberId']),
+      'sendSMS': (re, rs) => ensureParameters(request, response, sendSMS,
+          requestParams: ['number', 'message']),
+      'createBook': (re, rs) => ensureParameters(request, response, createBook,
+          requestParams: ['name', 'password']),
+      'getBook': (re, rs) =>
+          ensureParameters(re, rs, getBook, bookRequest: true),
+      'addNumber': (re, rs) => ensureParameters(re, rs, addNumber,
+          bookRequest: true, requestParams: ['numberName', 'number']),
+      'removeNumber': (re, rs) => ensureParameters(re, rs, removeNumber,
+          bookRequest: true, requestParams: ['numberId']),
     })[path[0]]
         ?.call(request, response);
 
@@ -64,8 +69,7 @@ class Server {
       return await res;
     }
 
-    response.statusCode = HttpStatus.notFound;
-    return {'error': 'Not Found'};
+    return error(response, HttpStatus.notFound, 'Not Found');
   }
 
   Future<Map<String, dynamic>> getToken(
@@ -74,15 +78,18 @@ class Server {
   }
 
   Future<Map<String, dynamic>> sendSMS(
-      HttpRequest request, HttpResponse response, Map<String, dynamic> json, {String number, String message}) async {
+      HttpRequest request, HttpResponse response, Map<String, dynamic> json,
+      {String number, String message}) async {
     number = parsePhoneNumber(number);
 
     if (number == null || !isNumeric(number)) {
-      return error(response, HttpStatus.badRequest, 'number must be a 10 digit phone number (or longer with international code)');
+      return error(response, HttpStatus.badRequest,
+          'number must be a 10 digit phone number (or longer with international code)');
     }
 
     if (message.isEmpty || message.length > 4096) {
-      return error(response, HttpStatus.badRequest, 'message length must be 1-4096 characters');
+      return error(response, HttpStatus.badRequest,
+          'message length must be 1-4096 characters');
     }
 
     var token = await _tokenFetcher.getToken();
@@ -118,21 +125,12 @@ class Server {
     return jsonDecode(body);
   }
 
-  Future<Map<String, dynamic>> add(
-      HttpRequest request, HttpResponse response) async {
-    await _conn.query('UPDATE temp SET val = val + 1');
-    var res = await await _conn.query('SELECT val FROM temp');
-    var first = res.first;
-    var val = first['val'];
-    print('val = $val');
-    return {'value': val};
-  }
-
   Future<Map<String, dynamic>> createBook(
-      HttpRequest request, HttpResponse response, Map<String, dynamic> json, {String name, String password}) async {
-
+      HttpRequest request, HttpResponse response, Map<String, dynamic> json,
+      {String name, String password}) async {
     if (_bookManager.containsBook(name)) {
-      return error(response, HttpStatus.badRequest, 'Book with name already exists');
+      return error(
+          response, HttpStatus.badRequest, 'Book with name already exists');
     }
 
     var book = await _bookManager.addBook(name, password);
@@ -150,11 +148,13 @@ class Server {
   }
 
   Future<Map<String, dynamic>> addNumber(HttpRequest request,
-      HttpResponse response, Map<String, dynamic> json, Book book, {String numberName, String number}) async {
+      HttpResponse response, Map<String, dynamic> json, Book book,
+      {String numberName, String number}) async {
     number = parsePhoneNumber(number);
 
     if (number == null || !isNumeric(number)) {
-      return error(response, HttpStatus.badRequest, 'number must be a 10 digit phone number (or longer with international code)');
+      return error(response, HttpStatus.badRequest,
+          'number must be a 10 digit phone number (or longer with international code)');
     }
 
     var addedNumber = await _bookManager.addNumber(numberName, number, book);
@@ -162,14 +162,14 @@ class Server {
   }
 
   Future<Map<String, dynamic>> removeNumber(HttpRequest request,
-      HttpResponse response, Map<String, dynamic> json, Book book, {int numberId}) async {
-
+      HttpResponse response, Map<String, dynamic> json, Book book,
+      {int numberId}) async {
     await _bookManager.removeNumber(numberId);
     return {};
   }
 
-  Future<Map<String, dynamic>> ensureParameters(HttpRequest request,
-      HttpResponse response, Function callback,
+  Future<Map<String, dynamic>> ensureParameters(
+      HttpRequest request, HttpResponse response, Function callback,
       {List<String> requestParams = const [], bool bookRequest = false}) async {
     var json = await getBody(request);
 
@@ -179,7 +179,8 @@ class Server {
     ];
 
     if (testingParams.any((element) => !json.containsKey(element))) {
-      return error(response, HttpStatus.badRequest, 'Required parameters: ${testingParams.join(', ')}');
+      return error(response, HttpStatus.badRequest,
+          'Required parameters: ${testingParams.join(', ')}');
     }
 
     Book book;
@@ -189,34 +190,19 @@ class Server {
 
       book = _bookManager.getBook(name, password);
       if (book == null) {
-        return error(response, HttpStatus.badRequest, 'No book could be found with the given name and password');
+        return error(response, HttpStatus.badRequest,
+            'No book could be found with the given name and password');
       }
     }
 
-    return Function.apply(callback, [
-      request,
-      response,
-      json,
-      if (book != null)
-        book
-    ], {
-      for (var p in requestParams) Symbol(p): json[p]
-    });
-  }
-
-  Map<String, dynamic> error(HttpResponse response, int code, String message) {
-    response.statusCode = code;
-    return {'error': message};
-  }
-
-  Future<Map<String, dynamic>> getBody(HttpRequest request) async =>
-      jsonDecode(await utf8.decodeStream(request) ?? '{}') as Map;
-
-  Future<HttpClientResponse> sendPost(String url, Map<String, String> headers,
-      Map<String, dynamic> body) async {
-    var request = await httpClient.postUrl(Uri.parse(url));
-    headers.forEach(request.headers.set);
-    request.add(utf8.encode(jsonEncode(body)));
-    return await request.close();
+    try {
+      return Function.apply(
+          callback,
+          [request, response, json, if (book != null) book],
+          {for (var p in requestParams) Symbol(p): json[p]});
+    } catch (e, s) {
+      print('An error occurred\n$e\n$s');
+      return error(response, HttpStatus.internalServerError, '$e');
+    }
   }
 }

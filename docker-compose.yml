@@ -17,7 +17,7 @@ services:
       - ./init:/docker-entrypoint-initdb.d
   ondemand:
     container_name: ondemand
-    image: rubbaboy/ondemand:v1.0.0-SNAPSHOT
+    image: rubbaboy/ondemand:v1.0.0
     links:
       - db
     ports:

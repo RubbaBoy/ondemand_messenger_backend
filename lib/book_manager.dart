@@ -14,8 +14,7 @@ class BookManager {
     var queriedNumbers = await conn.query('SELECT * FROM numbers;');
     var numbers = queriedNumbers.map((row) => Number.fromRow(row)).toList();
 
-    print('Books: $books');
-    print('Numbers: $numbers');
+    print('Loaded ${books.length} books and ${numbers.length} numbers');
 
     return BookManager._(conn, books, numbers);
   }
@@ -27,7 +26,7 @@ class BookManager {
     await _conn.query('INSERT INTO numbers (name, number, book_id) VALUES(?, ?, ?)', [name, number, book.bookId]);
     var id = await getLastId();
     var addedNumber = Number(id, name, number, book.bookId);
-    print('Adding $addedNumber');
+    print('Adding number #$id');
     numbers.add(addedNumber);
     return addedNumber;
   }
@@ -41,7 +40,7 @@ class BookManager {
     await _conn.query('INSERT INTO books (name, password) VALUES(?, ?)', [name, password]);
     var id = await getLastId();
     var book = Book(id, name, password);
-    print('Adding $book');
+    print('Adding book id #$id');
     books.add(book);
     return book;
   }

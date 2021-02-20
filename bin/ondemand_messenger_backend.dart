@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:args/args.dart';
-import 'package:mysql1/mysql1.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
+import 'package:ondemand_messenger_backend/connection_creator.dart' as conn_creator;
 import 'package:ondemand_messenger_backend/fetcher.dart';
 import 'package:ondemand_messenger_backend/server.dart';
 
@@ -12,18 +12,9 @@ Future<void> main(List<String> args) async {
 
   var result = parser.parse(args);
 
-  print('Binding...');
+  print('Connecting to database...');
 
-  var settings = ConnectionSettings(
-    host: 'db',
-    port: 3306,
-    user: 'user',
-    password: 'user',
-    db: 'ondemand',
-    timeout: Duration(seconds: 20),
-  );
-
-  var conn = await createConnection(settings);
+  var conn = await conn_creator.getConnection();
 
   print('Connected to database');
 
@@ -31,28 +22,6 @@ Future<void> main(List<String> args) async {
 
   print('Created book manager');
 
-  await Server(TokenFetcher(), bookManager, conn).start(int.parse(result['port']));
-}
-
-Future<T> delay<T>(Duration duration, FutureOr<T> Function() value) {
-  var completer = Completer<T>();
-  Timer(duration, () async => completer.complete(await value()));
-  return completer.future;
-}
-
-Future<MySqlConnection> createConnection(ConnectionSettings settings) {
-  var completer = Completer<MySqlConnection>();
-  Timer(
-      Duration(seconds: 5),
-      () {
-        print('Checking again...');
-    return MySqlConnection.connect(settings)
-          .then(completer.complete)
-          .catchError(
-              (e) {
-                print(e);
-      return createConnection(settings).then(completer.complete);
-              });
-      });
-  return completer.future;
+  await Server(TokenFetcher(), bookManager)
+      .start(int.parse(result['port']));
 }
