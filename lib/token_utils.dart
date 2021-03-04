@@ -38,10 +38,10 @@ class TokenUtils {
         DateTime.fromMillisecondsSinceEpoch(token.substring(10, 23).toInt());
     if (time.isBefore(DateTime.now())) {
       // Token is expired, as expiry is before the current time
-      return false;
+      return true;
     }
 
-    return true;
+    return false;
   }
 
   static Token generateToken(Duration expiration) {

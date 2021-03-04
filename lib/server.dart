@@ -38,7 +38,8 @@ class Server {
 
   Future<void> handle(HttpRequest request) async {
     var response = request.response;
-    response.headers.set('Access-Control-Allow-Origin', '*');
+    response.headers.set('Access-Control-Allow-Origin', 'https://yarr.is');
+    response.headers.set('Access-Control-Expose-Headers', 'x-token');
 
     if (request.method != 'POST') {
       response.write(jsonEncode({'error': 'POST Only'}));
@@ -57,8 +58,6 @@ class Server {
       response.statusCode = HttpStatus.methodNotAllowed;
       return {'error': 'Not Found'};
     }
-
-    // TODO: Add captchaToken query param in every web client request
 
     var res = ({
       'sendSMS': (re, rs) =>
@@ -139,8 +138,8 @@ class Server {
     return jsonDecode(body);
   }
 
-  String getSetCookieString(Token token) =>
-      'token=${token.token}; Expires=${toUTCString(token.expiry)}';
+  String getTokenHeaderString(Token token) =>
+      '${token.token};${toUTCString(token.expiry)}';
 
   Future<Map<String, dynamic>> createBook(HttpRequest request,
       HttpResponse response, Map<String, dynamic> json,
@@ -153,7 +152,7 @@ class Server {
     var book = await _bookManager.addBook(name, password);
     var token = _bookAuthManager.getToken(book: book);
 
-    response.headers.add('Set-Cookie', getSetCookieString(token));
+    response.headers.add('x-token', getTokenHeaderString(token));
     return {
       'book': {'id': book.bookId, 'name': book.name}
     };
@@ -168,7 +167,7 @@ class Server {
       return error(response, HttpStatus.unauthorized, 'Invalid credentials');
     }
 
-    response.headers.add('Set-Cookie', getSetCookieString(token));
+    response.headers.add('x-token', getTokenHeaderString(token));
     return {};
   }
 
