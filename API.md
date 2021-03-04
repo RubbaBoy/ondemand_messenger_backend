@@ -1,5 +1,7 @@
 # API
 
+To use the API yourself, you need an API key. Currently I'm unsure of a great way to disperse API keys, so you can request one by contacting me on Discord at `RubbaBoy#2832` or emailing me at [adam@yarr.is](mailto:adam@yarr.is), or make an issue suggesting a better way. Right now, when you make a request, a 10-minute API key is stored in your cookies which you may use.
+
 All methods are POST (because I'm lazy and internally it's fucked). If anything has an error that occurs, it will return something like:
 
 ```json

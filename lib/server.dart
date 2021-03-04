@@ -1,16 +1,19 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:ondemand_messenger_backend/auth_manager.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/fetcher.dart';
 import 'package:ondemand_messenger_backend/request_helper.dart';
+import 'package:ondemand_messenger_backend/token_utils.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class Server {
+  final AuthManager _authManager;
   final TokenFetcher _tokenFetcher;
   final BookManager _bookManager;
 
-  Server(this._tokenFetcher, this._bookManager);
+  Server(this._authManager, this._tokenFetcher, this._bookManager);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -52,16 +55,23 @@ class Server {
 
     var res = ({
       'token': getToken,
-      'sendSMS': (re, rs) => ensureParameters(request, response, sendSMS,
-          requestParams: ['number', 'message']),
-      'createBook': (re, rs) => ensureParameters(request, response, createBook,
-          requestParams: ['name', 'password']),
+      'sendSMS': (re, rs) =>
+          ensureParameters(request, response, sendSMS,
+              requestParams: ['number', 'message']),
+      'requestToken': (re, rs) =>
+          ensureParameters(request, response, requestToken,
+              requestParams: ['name', 'password', 'recaptcha']),
+      'createBook': (re, rs) =>
+          ensureParameters(request, response, createBook,
+              requestParams: ['name', 'password']),
       'getBook': (re, rs) =>
           ensureParameters(re, rs, getBook, bookRequest: true),
-      'addNumber': (re, rs) => ensureParameters(re, rs, addNumber,
-          bookRequest: true, requestParams: ['numberName', 'number']),
-      'removeNumber': (re, rs) => ensureParameters(re, rs, removeNumber,
-          bookRequest: true, requestParams: ['numberId']),
+      'addNumber': (re, rs) =>
+          ensureParameters(re, rs, addNumber,
+              bookRequest: true, requestParams: ['numberName', 'number']),
+      'removeNumber': (re, rs) =>
+          ensureParameters(re, rs, removeNumber,
+              bookRequest: true, requestParams: ['numberId']),
     })[path[0]]
         ?.call(request, response);
 
@@ -72,13 +82,13 @@ class Server {
     return error(response, HttpStatus.notFound, 'Not Found');
   }
 
-  Future<Map<String, dynamic>> getToken(
-      HttpRequest request, HttpResponse response) async {
+  Future<Map<String, dynamic>> getToken(HttpRequest request,
+      HttpResponse response) async {
     return {'token': await _tokenFetcher.getToken()};
   }
 
-  Future<Map<String, dynamic>> sendSMS(
-      HttpRequest request, HttpResponse response, Map<String, dynamic> json,
+  Future<Map<String, dynamic>> sendSMS(HttpRequest request,
+      HttpResponse response, Map<String, dynamic> json,
       {String number, String message}) async {
     number = parsePhoneNumber(number);
 
@@ -103,7 +113,7 @@ class Server {
       'Cache-Control': 'no-cache',
       'Accept': 'application/json, text/plain',
       'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 Edg/88.0.705.63',
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36 Edg/88.0.705.63',
       'Content-Type': 'application/json;charset=UTF-8',
     }, {
       'sendOrderTo': '+$number',
@@ -125,8 +135,11 @@ class Server {
     return jsonDecode(body);
   }
 
-  Future<Map<String, dynamic>> createBook(
-      HttpRequest request, HttpResponse response, Map<String, dynamic> json,
+  String getSetCookieString(Token token) =>
+      'token=${token.token}; Expires=${toUTCString(token.expiry)}';
+
+  Future<Map<String, dynamic>> createBook(HttpRequest request,
+      HttpResponse response, Map<String, dynamic> json,
       {String name, String password}) async {
     if (_bookManager.containsBook(name)) {
       return error(
@@ -134,10 +147,29 @@ class Server {
     }
 
     var book = await _bookManager.addBook(name, password);
+    var token = _authManager.getToken(book: book);
 
+    response.headers.add('Set-Cookie', getSetCookieString(token));
     return {
       'book': {'id': book.bookId, 'name': book.name}
     };
+  }
+
+  Future<Map<String, dynamic>> requestToken(HttpRequest request,
+      HttpResponse response, Map<String, dynamic> json,
+      {String name, String password, String recaptcha}) async {
+    var token = _authManager.getToken(username: name, password: password);
+
+    // TODO: Verify recaptcha
+
+    print('Recaptcha: $recaptcha');
+
+    if (token == null) {
+      return error(response, HttpStatus.unauthorized, 'Invalid credentials');
+    }
+
+    response.headers.add('Set-Cookie', getSetCookieString(token));
+    return {};
   }
 
   Future<Map<String, dynamic>> getBook(HttpRequest request,
@@ -168,14 +200,14 @@ class Server {
     return {};
   }
 
-  Future<Map<String, dynamic>> ensureParameters(
-      HttpRequest request, HttpResponse response, Function callback,
+  Future<Map<String, dynamic>> ensureParameters(HttpRequest request,
+      HttpResponse response, Function callback,
       {List<String> requestParams = const [], bool bookRequest = false}) async {
     var json = await getBody(request);
 
     var testingParams = [
       ...requestParams,
-      if (bookRequest) ...['name', 'password']
+      if (bookRequest) ...['token']
     ];
 
     if (testingParams.any((element) => !json.containsKey(element))) {
@@ -185,13 +217,11 @@ class Server {
 
     Book book;
     if (bookRequest) {
-      var name = json['name'];
-      var password = json['password'];
+      var token = json['token'];
 
-      book = _bookManager.getBook(name, password);
+      book = _authManager.getBook(token);
       if (book == null) {
-        return error(response, HttpStatus.badRequest,
-            'No book could be found with the given name and password');
+        return error(response, HttpStatus.unauthorized, 'Invalid token');
       }
     }
 
