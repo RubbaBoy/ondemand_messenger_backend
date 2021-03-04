@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ondemand_messenger_backend/auth_manager.dart';
+import 'package:ondemand_messenger_backend/auth/book_auth_manager.dart';
+import 'package:ondemand_messenger_backend/auth/captcha_auth_manager.dart';
+import 'package:ondemand_messenger_backend/auth/recaptcha_verification.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/fetcher.dart';
 import 'package:ondemand_messenger_backend/request_helper.dart';
@@ -9,11 +11,14 @@ import 'package:ondemand_messenger_backend/token_utils.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class Server {
-  final AuthManager _authManager;
+  final BookAuthManager _bookAuthManager;
   final TokenFetcher _tokenFetcher;
   final BookManager _bookManager;
+  final CaptchaAuthManager _captchaAuthManager;
+  final CaptchaVerification _captchaVerification;
+  final String overridePassword;
 
-  Server(this._authManager, this._tokenFetcher, this._bookManager);
+  Server(this._tokenFetcher, this._bookManager, this._bookAuthManager, this._captchaAuthManager, this._captchaVerification, this.overridePassword);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -53,14 +58,18 @@ class Server {
       return {'error': 'Not Found'};
     }
 
+    // TODO: Add captchaToken query param in every web client request
+
     var res = ({
-      'token': getToken,
       'sendSMS': (re, rs) =>
           ensureParameters(request, response, sendSMS,
               requestParams: ['number', 'message']),
       'requestToken': (re, rs) =>
           ensureParameters(request, response, requestToken,
-              requestParams: ['name', 'password', 'recaptcha']),
+              requestParams: ['name', 'password']),
+      'requestCaptchaOverride': (re, rs) =>
+          ensureParameters(request, response, requestCaptchaOverride,
+              requestParams: ['password', 'label'], captchaRequest: false),
       'createBook': (re, rs) =>
           ensureParameters(request, response, createBook,
               requestParams: ['name', 'password']),
@@ -80,11 +89,6 @@ class Server {
     }
 
     return error(response, HttpStatus.notFound, 'Not Found');
-  }
-
-  Future<Map<String, dynamic>> getToken(HttpRequest request,
-      HttpResponse response) async {
-    return {'token': await _tokenFetcher.getToken()};
   }
 
   Future<Map<String, dynamic>> sendSMS(HttpRequest request,
@@ -147,7 +151,7 @@ class Server {
     }
 
     var book = await _bookManager.addBook(name, password);
-    var token = _authManager.getToken(book: book);
+    var token = _bookAuthManager.getToken(book: book);
 
     response.headers.add('Set-Cookie', getSetCookieString(token));
     return {
@@ -157,12 +161,8 @@ class Server {
 
   Future<Map<String, dynamic>> requestToken(HttpRequest request,
       HttpResponse response, Map<String, dynamic> json,
-      {String name, String password, String recaptcha}) async {
-    var token = _authManager.getToken(username: name, password: password);
-
-    // TODO: Verify recaptcha
-
-    print('Recaptcha: $recaptcha');
+      {String name, String password}) async {
+    var token = _bookAuthManager.getToken(username: name, password: password);
 
     if (token == null) {
       return error(response, HttpStatus.unauthorized, 'Invalid credentials');
@@ -170,6 +170,18 @@ class Server {
 
     response.headers.add('Set-Cookie', getSetCookieString(token));
     return {};
+  }
+
+  Future<Map<String, dynamic>> requestCaptchaOverride(HttpRequest request,
+      HttpResponse response, Map<String, dynamic> json,
+      {String password, String label}) async {
+    print('Creating reCaptcha override!');
+
+    if (password != overridePassword) {
+      return error(response, HttpStatus.unauthorized, 'Invalid credentials');
+    }
+
+    return (await _captchaAuthManager.createToken(label)).toJson();
   }
 
   Future<Map<String, dynamic>> getBook(HttpRequest request,
@@ -200,14 +212,19 @@ class Server {
     return {};
   }
 
+  /// [bookRequest] requires a `token` header.
+  /// [captchaRequest] requires either a `captchaToken` or `captchaOverride`
+  /// access token.
+  /// The `captchaToken` comes directly from reCaptcha. `captchaOverride` is an
+  /// access token retrieved by [requestCaptchaOverride].
   Future<Map<String, dynamic>> ensureParameters(HttpRequest request,
       HttpResponse response, Function callback,
-      {List<String> requestParams = const [], bool bookRequest = false}) async {
+      {List<String> requestParams = const [], bool bookRequest = false, bool captchaRequest = true}) async {
     var json = await getBody(request);
 
     var testingParams = [
       ...requestParams,
-      if (bookRequest) ...['token']
+      if (bookRequest) 'token'
     ];
 
     if (testingParams.any((element) => !json.containsKey(element))) {
@@ -215,11 +232,20 @@ class Server {
           'Required parameters: ${testingParams.join(', ')}');
     }
 
+    if (captchaRequest) {
+      var override = json.containsKey('captchaOverride');
+      var token = override ? json['captchaOverride'] : json['captchaToken'];
+      var verifier = override ? _captchaAuthManager : _captchaVerification;
+      if (token == null || !await verifier.isValid(token)) {
+        return error(response, HttpStatus.forbidden, 'Invalid ${override ? 'override' : 'reCaptcha'} token');
+      }
+    }
+
     Book book;
     if (bookRequest) {
       var token = json['token'];
 
-      book = _authManager.getBook(token);
+      book = _bookAuthManager.getBook(token);
       if (book == null) {
         return error(response, HttpStatus.unauthorized, 'Invalid token');
       }

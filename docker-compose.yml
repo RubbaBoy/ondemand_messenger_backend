@@ -18,6 +18,7 @@ services:
   ondemand:
     container_name: ondemand
     image: rubbaboy/ondemand:v1.0.0
+    command: --override=p@ss
     links:
       - db
     ports:

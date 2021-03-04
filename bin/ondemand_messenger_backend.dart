@@ -1,16 +1,25 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:ondemand_messenger_backend/auth/book_auth_manager.dart';
+import 'package:ondemand_messenger_backend/auth/captcha_auth_manager.dart';
+import 'package:ondemand_messenger_backend/auth/recaptcha_verification.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
-import 'package:ondemand_messenger_backend/connection_creator.dart' as conn_creator;
+import 'package:ondemand_messenger_backend/connection_creator.dart'
+    as conn_creator;
 import 'package:ondemand_messenger_backend/fetcher.dart';
 import 'package:ondemand_messenger_backend/server.dart';
 
 Future<void> main(List<String> args) async {
   var parser = ArgParser()
-    ..addOption('port', abbr: 's', help: 'The socket port', defaultsTo: '8090');
+    ..addOption('port', abbr: 's', help: 'The socket port', defaultsTo: '8090')
+    ..addOption('override',
+        abbr: 'o', help: 'The override password', defaultsTo: 'pass');
 
   var result = parser.parse(args);
+
+  print('bruh: ${result['override']}');
 
   print('Connecting to database...');
 
@@ -20,8 +29,16 @@ Future<void> main(List<String> args) async {
 
   var bookManager = await BookManager.createBookManager(conn);
 
-  print('Created book manager');
+  var captchaAuthManager = CaptchaAuthManager(conn);
+  await captchaAuthManager.init();
 
-  await Server(TokenFetcher(), bookManager)
+  print('Created book manager');
+  await Server(
+          TokenFetcher(),
+          bookManager,
+          BookAuthManager(bookManager),
+          captchaAuthManager,
+          CaptchaVerification(Platform.environment['CAPTCHA_SECRET']),
+          result['override'])
       .start(int.parse(result['port']));
 }

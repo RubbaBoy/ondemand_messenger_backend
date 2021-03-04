@@ -1,4 +1,5 @@
 import 'package:mysql1/mysql1.dart';
+import 'package:ondemand_messenger_backend/utility.dart';
 
 class BookManager {
   final List<Book> books;
@@ -24,7 +25,7 @@ class BookManager {
 
   Future<Number> addNumber(String name, String number, Book book) async {
     await _conn.query('INSERT INTO numbers (name, number, book_id) VALUES(?, ?, ?)', [name, number, book.bookId]);
-    var id = await getLastId();
+    var id = await getLastId(_conn);
     var addedNumber = Number(id, name, number, book.bookId);
     print('Adding number #$id');
     numbers.add(addedNumber);
@@ -38,7 +39,7 @@ class BookManager {
 
   Future<Book> addBook(String name, String password) async {
     await _conn.query('INSERT INTO books (name, password) VALUES(?, ?)', [name, password]);
-    var id = await getLastId();
+    var id = await getLastId(_conn);
     var book = Book(id, name, password);
     print('Adding book id #$id');
     books.add(book);
@@ -47,11 +48,6 @@ class BookManager {
 
   bool containsBook(String name) =>
       books.any((book) => book.name == name);
-
-  Future<int> getLastId() async {
-    var idRow = await _conn.query('SELECT LAST_INSERT_ID()');
-    return idRow.first.values[0];
-  }
 
   Book getBook(String name, String password) {
     var book = books.firstWhere((book) => book.name == name, orElse: () => null);

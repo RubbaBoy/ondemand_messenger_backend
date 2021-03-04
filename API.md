@@ -33,17 +33,13 @@ The `number` must be a 10-digit phone number (or more if you include the country
 
 The UUID given by OnDemand when a text was successfully sent.
 
-### `POST` /token
+### `POST` /requestToken
 
-#### Response:
+Requests a book token with given a book username/password.
 
-```json
-{
-    "token": "..."
-}
-```
+### `POST` /requestCaptchaOverride
 
-The `token` is the authentication bearer token used by the OnDemand service.
+**RESTRICTED** Requests a token to override the reCaptcha present in the client website. Takes in a static password.
 
 ### `POST` /createBook
 

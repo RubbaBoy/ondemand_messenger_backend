@@ -1,12 +1,13 @@
 import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/token_utils.dart';
 
-class AuthManager {
+/// Handles authentication for books
+class BookAuthManager {
 
   final BookManager _bookManager;
   final List<BookAuth> authedBooks = [];
 
-  AuthManager(this._bookManager);
+  BookAuthManager(this._bookManager);
 
   /// Generates and stores a token for either a given [Book], or by both the
   /// book's [username] and [password].

@@ -12,6 +12,10 @@ class TokenUtils {
   /// milliseconds, and another 9 random characters, for a total length of 32
   /// characters.
   static bool isValid(String token) {
+    if (token == null) {
+      return false;
+    }
+
     if (token.length != 32) {
       return false;
     }

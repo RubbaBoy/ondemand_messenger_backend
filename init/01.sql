@@ -22,3 +22,10 @@ CREATE TABLE IF NOT EXISTS numbers (
     PRIMARY KEY (number_id),
     FOREIGN KEY (book_id) REFERENCES books (book_id)
 );
+
+CREATE TABLE IF NOT EXISTS overrideTokens (
+    id    int auto_increment,
+    label varchar(128),
+    token varchar(64),
+    PRIMARY KEY (id)
+);
