@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS numbers (
     FOREIGN KEY (book_id) REFERENCES books (book_id)
 );
 
+# The access token API keys
 CREATE TABLE IF NOT EXISTS overrideTokens (
     id    int auto_increment,
     label varchar(128),
