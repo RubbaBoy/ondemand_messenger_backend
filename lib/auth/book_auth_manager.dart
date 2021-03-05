@@ -71,5 +71,5 @@ class BookAuth {
 
   /// Returns if the given token is for the current book. Does not check for
   /// token validity.
-  bool isValid(String token) => token.contains(token);
+  bool isValid(String token) => tokens.contains(token);
 }

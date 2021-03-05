@@ -150,6 +150,11 @@ class Server {
           response, HttpStatus.badRequest, 'Book with name already exists');
     }
 
+    if ((password ?? '') == '') {
+      return error(
+          response, HttpStatus.badRequest, 'Empty passwords are not allowed');
+    }
+
     var book = await _bookManager.addBook(name, password);
     var token = _bookAuthManager.getToken(book: book);
 
