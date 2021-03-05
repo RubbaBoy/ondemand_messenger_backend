@@ -10,7 +10,6 @@ class TokenCache {
   Future<String> getToken() async {
     var now = DateTime.now();
     if (token == null || now.difference(fetched).inMinutes >= 30) {
-      print('Fetching new token');
       token = await fetchToken();
       fetched = now;
     }

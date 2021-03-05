@@ -19,8 +19,6 @@ Future<void> main(List<String> args) async {
 
   var result = parser.parse(args);
 
-  print('bruh: ${result['override']}');
-
   print('Connecting to database...');
 
   var conn = await conn_creator.getConnection();

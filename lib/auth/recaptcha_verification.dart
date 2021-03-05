@@ -17,7 +17,6 @@ class CaptchaVerification with Verifier {
         headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: 'secret=$_captchaSecret&response=$token');
     var json = jsonDecode(response.body);
-    print(json);
     return json['success'] ?? false;
   }
 }
