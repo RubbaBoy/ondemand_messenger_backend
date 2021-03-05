@@ -236,7 +236,7 @@ class Server {
       var token = override ? json['captchaOverride'] : json['captchaToken'];
       var verifier = override ? _captchaAuthManager : _captchaVerification;
       if (token == null || !await verifier.isValid(token)) {
-        return error(response, HttpStatus.forbidden, 'Invalid ${override ? 'override' : 'reCaptcha'} token');
+        return error(response, HttpStatus.unauthorized, 'Invalid ${override ? 'override' : 'reCaptcha'} token');
       }
     }
 
@@ -244,9 +244,15 @@ class Server {
     if (bookRequest) {
       var token = json['token'];
 
-      book = _bookAuthManager.getBook(token);
-      if (book == null) {
-        return error(response, HttpStatus.unauthorized, 'Invalid token');
+      var bookResult = _bookAuthManager.getBook(token);
+      switch (bookResult.result) {
+        case Result.Invalid:
+          return error(response, HttpStatus.unauthorized, 'Invalid token');
+        case Result.Expired:
+          return error(response, HttpStatus.unauthorized, 'Expired token');
+        case Result.Okay:
+          book = bookResult.book;
+          break;
       }
     }
 

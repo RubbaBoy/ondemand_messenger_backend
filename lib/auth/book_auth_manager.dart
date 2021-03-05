@@ -23,27 +23,44 @@ class BookAuthManager {
       return created;
     });
 
-    var token = TokenUtils.generateToken(Duration(minutes: 10));
+    var token = TokenUtils.generateToken(Duration(days: 1));
     bookAuth.tokens.add(token.token);
     return token;
   }
 
-  /// Gets the [Book] object for the given [token]. If the token is invalid or
-  /// expired, null is returned.
-  Book getBook(String token) {
+  /// Gets the [BookResult] object for the given [token].
+  BookResult getBook(String token) {
     if (!TokenUtils.isValid(token)) {
-      return null;
+      return BookResult.Invalid;
     }
 
     var authBook = authedBooks.firstWhere((e) => e.isValid(token), orElse: () => null);
     if (TokenUtils.isExpired(token)) {
-      authBook.tokens.remove(token);
-      return null;
+      authBook?.tokens?.remove(token);
+      return BookResult.Expired;
     }
 
-    return authBook.book;
+    if (authBook == null) {
+      return BookResult.Invalid;
+    }
+
+    return BookResult(book: authBook.book);
   }
 
+}
+
+enum Result {
+  Invalid, Expired, Okay
+}
+
+class BookResult {
+  static final Invalid = BookResult(result: Result.Invalid);
+  static final Expired = BookResult(result: Result.Expired);
+
+  final Result result;
+  final Book book;
+
+  BookResult({this.result = Result.Okay, this.book});
 }
 
 class BookAuth {
