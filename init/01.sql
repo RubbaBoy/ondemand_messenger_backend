@@ -30,3 +30,10 @@ CREATE TABLE IF NOT EXISTS overrideTokens (
     token varchar(64),
     PRIMARY KEY (id)
 );
+
+# A log to track the amount of sent messages
+CREATE TABLE IF NOT EXISTS sentMessages (
+    count int
+);
+
+# UPDATE sentMessages SET count = count + 1

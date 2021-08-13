@@ -9,7 +9,9 @@ Map<String, dynamic> error(HttpResponse response, int code, String message) {
 }
 
 Future<Map<String, dynamic>> getBody(HttpRequest request) async =>
-    jsonDecode(await utf8.decodeStream(request) ?? '{}') as Map;
+    jsonDecode(emptyToEmptyJson(await utf8.decodeStream(request))) as Map;
+
+String emptyToEmptyJson(String input) => (input?.isEmpty ?? true) ? '{}' : input;
 
 Future<HttpClientResponse> sendPost(String url, Map<String, String> headers,
     Map<String, dynamic> body) async {

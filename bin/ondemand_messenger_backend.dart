@@ -9,6 +9,7 @@ import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/connection_creator.dart'
     as conn_creator;
 import 'package:ondemand_messenger_backend/fetcher.dart';
+import 'package:ondemand_messenger_backend/request_counter.dart';
 import 'package:ondemand_messenger_backend/server.dart';
 
 Future<void> main(List<String> args) async {
@@ -26,6 +27,7 @@ Future<void> main(List<String> args) async {
   print('Connected to database');
 
   var bookManager = await BookManager.createBookManager(conn);
+  var requestCounter = await RequestCounter.createRequestCounter(conn);
 
   var captchaAuthManager = CaptchaAuthManager(conn);
   await captchaAuthManager.init();
@@ -37,6 +39,7 @@ Future<void> main(List<String> args) async {
           BookAuthManager(bookManager),
           captchaAuthManager,
           CaptchaVerification(Platform.environment['CAPTCHA_SECRET']),
+          requestCounter,
           result['override'])
       .start(int.parse(result['port']));
 }

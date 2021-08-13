@@ -7,6 +7,7 @@ import 'package:ondemand_messenger_backend/auth/captcha_auth_manager.dart';
 import 'package:ondemand_messenger_backend/auth/recaptcha_verification.dart';
 import 'package:ondemand_messenger_backend/book_manager.dart';
 import 'package:ondemand_messenger_backend/fetcher.dart';
+import 'package:ondemand_messenger_backend/request_counter.dart';
 import 'package:ondemand_messenger_backend/request_helper.dart';
 import 'package:ondemand_messenger_backend/token_utils.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
@@ -17,9 +18,10 @@ class Server {
   final BookManager _bookManager;
   final CaptchaAuthManager _captchaAuthManager;
   final CaptchaVerification _captchaVerification;
+  final RequestCounter _requestCounter;
   final String overridePassword;
 
-  Server(this._tokenFetcher, this._bookManager, this._bookAuthManager, this._captchaAuthManager, this._captchaVerification, this.overridePassword);
+  Server(this._tokenFetcher, this._bookManager, this._bookAuthManager, this._captchaAuthManager, this._captchaVerification, this._requestCounter, this.overridePassword);
 
   Future<void> start(int port) async {
     var server = await HttpServer.bind(
@@ -81,6 +83,7 @@ class Server {
       'removeNumber': (re, rs) =>
           ensureParameters(re, rs, removeNumber,
               bookRequest: true, requestParams: ['numberId']),
+      'getCount': (re, rs) => ensureParameters(re, rs, getCount),
     })[path[0]]
         ?.call(request, response);
 
@@ -135,6 +138,8 @@ class Server {
         'response': body
       };
     }
+
+    await _requestCounter.increment();
 
     return jsonDecode(body);
   }
@@ -215,6 +220,14 @@ class Server {
       {int numberId}) async {
     await _bookManager.removeNumber(numberId);
     return {};
+  }
+
+  Future<Map<String, dynamic>> getCount(HttpRequest request,
+      HttpResponse response, Map<String, dynamic> json,
+      {String name, String password}) async {
+    return {
+      'count': await _requestCounter.getCount()
+    };
   }
 
   /// [bookRequest] requires a `token` header.
