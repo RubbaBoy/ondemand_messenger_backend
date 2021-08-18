@@ -1,14 +1,15 @@
 import 'package:mysql1/mysql1.dart';
+import 'package:ondemand_messenger_backend/connection_creator.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class BookManager {
   final List<Book> books;
   final List<Number> numbers;
-  final MySqlConnection _conn;
+  final RetryMySqlConnection _conn;
 
   BookManager._(this._conn, this.books, this.numbers);
 
-  static Future<BookManager> createBookManager(MySqlConnection conn) async {
+  static Future<BookManager> createBookManager(RetryMySqlConnection conn) async {
     var queriedBooks = await conn.query('SELECT * FROM books;');
     var books = queriedBooks.map((row) => Book.fromRow(row)).toList();
 

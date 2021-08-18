@@ -2,11 +2,12 @@ import 'dart:convert';
 
 import 'package:mysql1/mysql1.dart';
 import 'package:ondemand_messenger_backend/auth/verifier.dart';
+import 'package:ondemand_messenger_backend/connection_creator.dart';
 import 'package:ondemand_messenger_backend/token_utils.dart';
 import 'package:ondemand_messenger_backend/utility.dart';
 
 class CaptchaAuthManager with Verifier {
-  final MySqlConnection _conn;
+  final RetryMySqlConnection _conn;
   final List<OverrideToken> tokens = [];
 
   CaptchaAuthManager(this._conn);

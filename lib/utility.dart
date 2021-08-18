@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:intl/intl.dart';
 import 'package:mysql1/mysql1.dart';
+import 'package:ondemand_messenger_backend/connection_creator.dart';
 
 final format = DateFormat('EEE, dd MMM yyyy HH:mm:ss');
 final httpClient = HttpClient()..badCertificateCallback = ((X509Certificate cert, String host, int port) => true);
@@ -24,7 +25,7 @@ String parsePhoneNumber(String number) {
 
 String toUTCString(DateTime dateTime) => '${format.format(dateTime.toUtc())} UTC';
 
-Future<int> getLastId(MySqlConnection conn) async {
+Future<int> getLastId(RetryMySqlConnection conn) async {
   var idRow = await conn.query('SELECT LAST_INSERT_ID()');
   return idRow.first.values[0];
 }
